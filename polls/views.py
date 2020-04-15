@@ -1,7 +1,8 @@
 from django.shortcuts import render, get_object_or_404
-from django.http import HttpResponse
-from polls.models import Question
+from django.http import HttpResponse, HttpResponseRedirect
+from polls.models import Question, Choice
 from django.template import loader
+from django.urls import reverse
 
 # Create your views here.
 def index (requests):
@@ -20,8 +21,18 @@ def detail(requests, question_id):
     return render(requests, 'polls/detail.html', {'question':question})
 
 def results(requests, question_id):
-    return HttpResponse(" you are on the result of %s." %question_id)
+    question = get_object_or_404(Question, pk = question_id)
+    return render(requests,'polls/results.html', {'question':question})
 
 def vote(requests, question_id):
-    return HttpResponse(" you have voted count %s." %question_id)
+    question = get_object_or_404(Question, pk = question_id)
+    try:
+        selected_choice = question.choice_set.get(pk=requests.POST['choice'])
+    except (KeyError, Choice.DoesNotExist):
+        return render(requests, 'polls/detail.html', 
+        {'question':question, 'error_message' : 'you didnot select a choice',})
+    else:
+        selected_choice.votes += 1
+        selected_choice.save()
+        return HttpResponseRedirect(reverse('polls:results', args = (question.id,)))
 
